@@ -1,0 +1,86 @@
+<html>
+
+<head>
+<meta http-equiv="Content-Language" content="zh-cn">
+<meta http-equiv="Content-Type" content="text/html; charset=gb2312">
+<title>atracer pre-beta 0</title>
+</head>
+
+<body>
+
+<div align="center">
+	<table border="0" width="800" id="table1" height="175" cellspacing="0" cellpadding="0">
+		<tr>
+			<td>
+
+<h1 align="center"><font size="5">atracer pre-beta 0.0001</font></h1>
+<p><span style="font-size: 9pt">atracer是一个代码定位辅助工具，用来定位某些不容易定位的代码，比如DirectX游戏中纯图形的注册窗口(事实上这是写这个工具的初衷)，或者
+你想看看记事本的‘撤销’操作代码在哪，等等，都可以方便的用它来定位。</span></p>
+<p><span style="font-size: 9pt">
+作为pre-beta版本，主要目的是把这个砖头扔出来，看看是不是有人用，然后看看大家有什么意见:)，我的邮箱是agoanywhere@hotmail.com。</span></p>
+			<p><span style="font-size: 9pt">
+			在扔出来的同时，还一直在改正，因为我是在刚凑合能用的时候就把它扔出来了……近期计划内的改进是：首先完善一些程序自身稳定性的事务，然后是增加detach，和添加插件接口。以后的改进主要是分析功能，现在主要靠ollydbg的分析结果。</span></p>
+<p><span style="font-size: 9pt">我进行的测试不是很多，系统自己带的写字板，计算器，画图，红心大战之类的，基本没有问题；photoshop 
+7.0有问题，因为od分析的也不正确，不过可以手工修正（详见使用方法），illustrator 10.0，没有问题。</span></p>
+<p><span style="font-size: 9pt">使用方法：</span></p>
+<p><font color="#FF00FF"><span style="font-size: 9pt">1。原理</span></font></p>
+<p><span style="font-size: 9pt">套用流行的词来说，就是很好很<font color="#FF0000">暴力</font>。atracer的工作原理就是把代码段用0xCC(int 
+3)覆盖，然后按执行流程依次恢复，并根据使用者需求进行记录。</span></p>
+<p><font color="#FF00FF"><span style="font-size: 9pt">2。局限性</span></font></p>
+<p><span style="font-size: 9pt">
+第一，这个方法理论上想要对改写代码段的动作进行支持是很困难的，所以没有计划去支持它，不过这并不是说他对加壳的就完全没办法了。<br>
+第二，其他如简单的校验，和其他anti-debug，有一部分是可以支持的，但这个pre-beta版里没有这些支持也没有plug-ins的接口。所以现在atracer主要是用来分析那些比较‘友好’的程序。</span></p>
+<p><font color="#FF00FF"><span style="font-size: 9pt">3。使用方法简介</span></font></p>
+<p><span style="font-size: 9pt">
+界面很简单，就是一个attach，一个标记，其中标记按钮为‘标记’二字时，不进行记录，点击后会显示为一个递增的数字，随后在log里可以按此按钮上的文字进行查找。</span></p>
+<p><span style="font-size: 9pt">用一个实例来说吧，比如我想知道illustrator 10.0里面画一个矩形的代码在哪里。</span></p>
+<p align="center"><span style="font-size: 9pt"><img border="0" src="1.PNG" width="281" height="196"><br>
+illustrator软件部分截图</span></p>
+<p><span style="font-size: 9pt">对于这种大型软件，建议使用OD的分析结果，原因在后面会解释。所以我们用ollydbg打开illustrator，待分析结束后对反汇编窗口全选，保存到文件（右键-&gt;copy-&gt;select 
+all，右键-&gt;copy-&gt;to file）。如下图</span></p>
+<p align="center"><span style="font-size: 9pt"><img border="0" src="2.PNG" width="578" height="427"></span></p>
+<p><span style="font-size: 9pt">然后关掉OD，运行illustrator，然后用atracer attach illustrator进程，这个attach窗口，需要多说几句，见下图</span></p>
+<p align="center"><span style="font-size: 9pt"><img border="0" src="3.PNG" width="489" height="467"></span></p>
+<p><span style="font-size: 9pt">图中我从上到下标出来了3个红色圆圈的区域。<br>
+1。比较简单，依次展开，这是我们要跟踪调试的目标<br>
+2。这是要覆盖的具体内存地址，在你点击上面模块的时候，他会自动写上整个模块的地址，你可以进行手工改动。如果你不打算使用OD分析的结果，要确保这里这个地址范围内全部是代码，不含其他内容(详见解释1)。如果你打算使用od的分析结果，这里要和od分析结果所对应的模块内存范围相同，一般来说就都用整个模块就好了，操作方便。<br>
+3。这里就是选择前面我们保存的od结果的了，一定要和目标模块是一套，否则一定会出错。另外注意第一次调用od分析结果的时候，atracer会更改他的内容，以便下次可以更快的加载，所以如果你要想对od分析结果进行手工修正的话，一定要保存备份。(<font color="#FF0000">特别注意</font>：od的结果会因为你od插件的使用而有所不同，atracer仅对无插件的od分析结果进行过测试
+，其他的格式不作任何保证）</span></p>
+<p><span style="font-size: 9pt">解释1:尽管atracer会自己识别import table/import adress 
+table/动态分析汇编代码等等，但是一方面这些分析是不够的，另一方面有些代码中会夹杂函数指针，而且很多函数指针会被模块外的call调用到，这些很麻烦。</span></p>
+<p><span style="font-size: 9pt">ok，都选好了以后点击确定，illustrator就已经处在atracer的调试之中了，如果atracer要分析一个巨大的原始的od结果的话，可能要等几秒钟。现在要做的是，先用一用illustrator的其他功能，特别是画长方形之前一定会用到的动作，比如鼠标在illustrator上面移动，点击矩形工具，等等，这么作的目的是把这些功能的代码监视状态清理掉，当然你还可以多操作一点，比如先画几个圆形，应该会去处很多圆形和长方形共用的代码。</span></p>
+<p><span style="font-size: 9pt">这里我们需要说说atracer中间几个数据的意义(如下图)，ALL表示atracer到现在为止一共还原的指令数，CUR是当前标记下还原的指令数，LOG是当前指令下记录的指令数
+（连续的指令只记录第一个）。</span></p>
+<p align="center"><span style="font-size: 9pt"><img border="0" src="4.PNG" width="362" height="92"><br>
+晕，怎么标题叫Ltracer。。算了，一会儿再改，说明书里面就不换了 -_-</span></p>
+<p>
+<span style="font-size: 9pt">所以，再多晃几下鼠标，确认ALL这里不再增加了，实在不行，至少也得是增加的很有限的时候，点击一下标记按钮，就成了上图这种状态，这时候回到illustrator，进行我们的‘画矩形’操作。回头看atracer，应该是类似下图的样子</span></p>
+<p align="center"><span style="font-size: 9pt">
+<img border="0" src="5.PNG" width="362" height="92"></span></p>
+			<p><span style="font-size: 9pt">可以看到记录了74条，看看atracer.log文件吧，可以看到</span></p>
+			<table border="1" width="100%" id="table2">
+				<tr>
+					<td><span style="font-size: 9pt">(1)13:22:02, tid: 3572, eip: 
+					00695DA9<br>
+					(1)13:22:02, tid: 3572, eip: 00695DD1<br>
+					(1)13:22:02, tid: 3572, eip: 00695E0E<br>
+					<br>
+					......省略......<br>
+					<br>
+					(1)13:22:16, tid: 3572, eip: 00819EDF<br>
+					(1)13:22:16, tid: 3572, eip: 00819F35<br>
+					(1)13:22:16, tid: 3572, eip: 008A5AED</span></td>
+				</tr>
+			</table>
+<p><span style="font-size: 9pt">还可以吧，74个eip地址大概是在是10个左右的过程里，用od看看这些位置，我觉着还是有点帮助:)</span></p>
+			<p><font color="#FF00FF"><span style="font-size: 9pt">后记＋od分析结果手工修正</span></font></p>
+			<p><span style="font-size: 9pt">本来没想着用od分析结果的，但是后来发现不同编译器下出来的代码各种各样的都有，代码中总是夹杂着非代码的内容，所以必须是得分析了，然后就整反汇编自己来简单的动态修补代码，做好以后发现目标程序还是崩溃的厉害，调了调，发现有些夹杂在代码中的数据竟然还被外面的模块调用，atracer没有跟踪其他模块，所以没法对这些位置动态修补。只能静态分析了，但是人懒，就先用了od的分析结果。</span></p>
+			<p><span style="font-size: 9pt">不过即便是od，也经常出错，比如说对photoshop的分析就不对，有一部分把数据当成代码了（10M的代码缝里夹着那么十几个DWORD），如果要用，就只能手工修正了，修正好以后再让atracer用，atracer识别OD文件的模式很简单，atracer只在意eip和指令的前几个字母，非代码的关键字有DB,DW,DD,ASCII,UNICODE，而长度是根据与下一行的eip之差计算的，如果有段应该是DD的代码被od反汇编了，那么你就可以把这一段的第一行改成DD 
+			xxxx，后面统统删掉，就可以了。注意代码那行一定要对齐，就像od本来做的那样。</span></p></td>
+		</tr>
+	</table>
+</div>
+
+</body>
+
+</html>
